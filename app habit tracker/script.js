@@ -663,36 +663,40 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleGridClick(e) {
     const square = e.target.closest(".day-square:not(:disabled)");
     if (!square) return;
-    const habitRow = square.closest(".grid-row");
-    const habitId = habitRow.dataset.id;
-    const habit = habits.find((h) => h.id === habitId);
-    const dateStr = square.dataset.date;
-    if (habit) {
-      if (habit.completions[dateStr]) {
-        delete habit.completions[dateStr];
-        square.classList.remove("completed", "failed");
-      } else {
-        habit.completions[dateStr] = true;
-        square.classList.add(habit.type === "good" ? "completed" : "failed");
-      }
-      saveData();
-      const metrics = calculateAllHabitMetrics(habit, displayDate, todayDate);
-      const metricsEl = habitRow.querySelector(".habit-metrics");
-      if (metricsEl) {
-        const isGoodHabit = habit.type === "good";
-        const seqTitle = isGoodHabit
-          ? "Sequência atual de dias concluídos"
-          : "Sequência atual de dias limpos";
-        const recTitle = isGoodHabit
-          ? "Recorde de dias concluídos em sequência"
-          : "Recorde de dias limpos em sequência";
-        const successTitle = isGoodHabit
-          ? "Taxa de sucesso no mês atual"
-          : "Taxa de dias limpos no mês atual";
-        metricsEl.innerHTML = `<span title="${seqTitle}">Seq: ${metrics.currentStreak}</span><span title="${recTitle}">Rec: ${metrics.bestStreak}</span><span title="${successTitle}">% Mês: ${metrics.monthlySuccessRate}</span>`;
-      }
-      updateStats();
-    }
+
+    square.classList.add("flipping");
+    setTimeout(() => {
+        const habitRow = square.closest(".grid-row");
+        const habitId = habitRow.dataset.id;
+        const habit = habits.find((h) => h.id === habitId);
+        const dateStr = square.dataset.date;
+
+        if (habit) {
+            if (habit.completions[dateStr]) {
+                delete habit.completions[dateStr];
+                square.classList.remove("completed", "failed");
+            } else {
+                habit.completions[dateStr] = true;
+                square.classList.add(habit.type === "good" ? "completed" : "failed");
+            }
+            saveData();
+
+            const metrics = calculateAllHabitMetrics(habit, displayDate, todayDate);
+            const metricsEl = habitRow.querySelector(".habit-metrics");
+            if (metricsEl) {
+                const isGoodHabit = habit.type === "good";
+                const seqTitle = isGoodHabit ? "Sequência atual de dias concluídos" : "Sequência atual de dias limpos";
+                const recTitle = isGoodHabit ? "Recorde de dias concluídos em sequência" : "Recorde de dias limpos em sequência";
+                const successTitle = isGoodHabit ? "Taxa de sucesso no mês atual" : "Taxa de dias limpos no mês atual";
+                metricsEl.innerHTML = `<span title="${seqTitle}">Seq: ${metrics.currentStreak}</span><span title="${recTitle}">Rec: ${metrics.bestStreak}</span><span title="${successTitle}">% Mês: ${metrics.monthlySuccessRate}</span>`;
+            }
+            updateStats();
+        }
+    }, 250);
+
+    square.addEventListener('animationend', () => {
+        square.classList.remove('flipping');
+    }, { once: true });
   }
   function handleMonthChange(offset) {
     displayDate.setMonth(displayDate.getMonth() + offset);
