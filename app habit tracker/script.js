@@ -386,7 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function createGridHeader(year, month) {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const gridTemplateColumns = `320px repeat(${daysInMonth}, 45px)`;
+    const gridTemplateColumns = `280px repeat(${daysInMonth}, 38px)`;
     gridHeader.style.gridTemplateColumns = gridTemplateColumns;
 
     let headerHTML = '<div class="habit-header">Hábito</div>';
@@ -495,7 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const daysInMonth = createGridHeader(currentYear, currentMonth);
-    const gridTemplateColumns = `320px repeat(${daysInMonth}, 45px)`;
+    const gridTemplateColumns = `280px repeat(${daysInMonth}, 38px)`;
     const gridBodyFragment = document.createDocumentFragment();
 
     habits.forEach((habit, index) => {
@@ -653,39 +653,38 @@ document.addEventListener("DOMContentLoaded", () => {
     const square = e.target.closest(".day-square:not(:disabled)");
     if (!square) return;
 
-    square.classList.add("flipping");
-    setTimeout(() => {
-        const habitRow = square.closest(".grid-row");
-        const habitId = habitRow.dataset.id;
-        const habit = habits.find((h) => h.id === habitId);
-        const dateStr = square.dataset.date;
-
-        if (habit) {
-            if (habit.completions[dateStr]) {
-                delete habit.completions[dateStr];
-                square.classList.remove("completed", "failed");
-            } else {
-                habit.completions[dateStr] = true;
-                square.classList.add(habit.type === "good" ? "completed" : "failed");
-            }
-            saveData();
-
-            const metrics = calculateAllHabitMetrics(habit, displayDate, todayDate);
-            const metricsEl = habitRow.querySelector(".habit-metrics");
-            if (metricsEl) {
-                const isGoodHabit = habit.type === "good";
-                const seqTitle = isGoodHabit ? "Sequência atual de dias concluídos" : "Sequência atual de dias limpos";
-                const recTitle = isGoodHabit ? "Recorde de dias concluídos em sequência" : "Recorde de dias limpos em sequência";
-                const successTitle = isGoodHabit ? "Taxa de sucesso no mês atual" : "Taxa de dias limpos no mês atual";
-                metricsEl.innerHTML = `<span title="${seqTitle}">Seq: ${metrics.currentStreak}</span><span title="${recTitle}">Rec: ${metrics.bestStreak}</span><span title="${successTitle}">% Mês: ${metrics.monthlySuccessRate}</span>`;
-            }
-            updateStats();
-        }
-    }, 250);
-
+    // Nova lógica de animação
+    square.classList.add("is-animating");
     square.addEventListener('animationend', () => {
-        square.classList.remove('flipping');
+        square.classList.remove('is-animating');
     }, { once: true });
+
+    const habitRow = square.closest(".grid-row");
+    const habitId = habitRow.dataset.id;
+    const habit = habits.find((h) => h.id === habitId);
+    const dateStr = square.dataset.date;
+
+    if (habit) {
+        if (habit.completions[dateStr]) {
+            delete habit.completions[dateStr];
+            square.classList.remove("completed", "failed");
+        } else {
+            habit.completions[dateStr] = true;
+            square.classList.add(habit.type === "good" ? "completed" : "failed");
+        }
+        saveData();
+
+        const metrics = calculateAllHabitMetrics(habit, displayDate, todayDate);
+        const metricsEl = habitRow.querySelector(".habit-metrics");
+        if (metricsEl) {
+            const isGoodHabit = habit.type === "good";
+            const seqTitle = isGoodHabit ? "Sequência atual de dias concluídos" : "Sequência atual de dias limpos";
+            const recTitle = isGoodHabit ? "Recorde de dias concluídos em sequência" : "Recorde de dias limpos em sequência";
+            const successTitle = isGoodHabit ? "Taxa de sucesso no mês atual" : "Taxa de dias limpos no mês atual";
+            metricsEl.innerHTML = `<span title="${seqTitle}">Seq: ${metrics.currentStreak}</span><span title="${recTitle}">Rec: ${metrics.bestStreak}</span><span title="${successTitle}">% Mês: ${metrics.monthlySuccessRate}</span>`;
+        }
+        updateStats();
+    }
   }
   function handleMonthChange(offset) {
     displayDate.setMonth(displayDate.getMonth() + offset);
