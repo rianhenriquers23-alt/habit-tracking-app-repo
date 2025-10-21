@@ -149,11 +149,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- FUNÇÃO DE NOTIFICAÇÃO "TOAST" (sem alteração) ---
   function showToast(message, type = "success", duration = 3e3) {
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
-    toast.textContent = message;
+    const icon = type === 'success' ? '✓' : '✕';
+    toast.innerHTML = `<span class="toast-icon">${icon}</span> ${message}`;
     toastContainer.appendChild(toast);
     setTimeout(() => {
       toast.classList.add("fade-out");
@@ -161,9 +161,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, duration);
   }
 
-  // =======================================================================
-  // ==                FUNÇÕES DA NOVA FEATURE (ATUALIZADAS)            ==
-  // =======================================================================
   function renderCravingsPanel() {
     cravingsListEl.innerHTML = "";
     for (const [id, config] of Object.entries(CRAVINGS_CONFIG)) {
@@ -245,43 +242,35 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleCravingsPanelClick(e) {
-    const addButton = e.target.closest(".add-craving-win-btn");
-    const removeButton = e.target.closest(".remove-craving-win-btn");
+    const button = e.target.closest(".craving-win-btn");
+    if (!button) return;
 
-    if (addButton) {
-      const itemId = addButton.dataset.id;
-      if (CRAVINGS_CONFIG[itemId]) {
-        cravingsData.push({ item: itemId, date: new Date().toISOString() });
-        saveData();
-        renderSavingsCharts();
-        showToast(
-          `+ R$${CRAVINGS_CONFIG[itemId].price.toFixed(2)} economizados!`
-        );
-      }
-    }
+    button.classList.add("pulse");
+    button.addEventListener('animationend', () => button.classList.remove('pulse'), { once: true });
 
-    if (removeButton) {
-      const itemId = removeButton.dataset.id;
-      // Encontra o índice da última ocorrência desse item no array
-      const lastIndex = cravingsData.map((d) => d.item).lastIndexOf(itemId);
+    const isAddButton = button.classList.contains("add-craving-win-btn");
+    const itemId = button.dataset.id;
 
-      if (lastIndex > -1) {
-        const removedItem = cravingsData.splice(lastIndex, 1)[0];
-        saveData();
-        renderSavingsCharts();
-        showToast(
-          `- R$${CRAVINGS_CONFIG[removedItem.item].price.toFixed(2)} removido.`,
-          "error"
-        );
-      } else {
-        showToast("Nenhuma vitória para remover.", "error");
-      }
+    if (isAddButton) {
+        if (CRAVINGS_CONFIG[itemId]) {
+            cravingsData.push({ item: itemId, date: new Date().toISOString() });
+            saveData();
+            renderSavingsCharts();
+            showToast(`+ R$${CRAVINGS_CONFIG[itemId].price.toFixed(2)} economizados!`);
+        }
+    } else { // removeButton
+        const lastIndex = cravingsData.map((d) => d.item).lastIndexOf(itemId);
+
+        if (lastIndex > -1) {
+            const removedItem = cravingsData.splice(lastIndex, 1)[0];
+            saveData();
+            renderSavingsCharts();
+            showToast(`- R$${CRAVINGS_CONFIG[removedItem.item].price.toFixed(2)} removido.`, "error");
+        } else {
+            showToast("Nenhuma vitória para remover.", "error");
+        }
     }
   }
-
-  // --- RESTANTE DO SCRIPT.JS (LÓGICA DE HÁBITOS, HANDLERS, INIT) ---
-  // Esta parte não foi alterada, então pode ser mantida como na versão anterior.
-  // Colei aqui novamente por completude.
 
   function calculateGoodHabitMetrics(habit, todayDate) {
     const completions = habit.completions || {};
