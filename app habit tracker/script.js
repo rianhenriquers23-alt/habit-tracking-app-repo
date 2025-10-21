@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const formSubmitBtn = addHabitForm.querySelector('button[type="submit"]');
   const prevMonthBtn = document.getElementById("prev-month-btn");
   const nextMonthBtn = document.getElementById("next-month-btn");
+  const todayBtn = document.getElementById("today-btn");
   const exportBtn = document.getElementById("export-btn");
   const importBtn = document.getElementById("import-btn");
   const importFileInput = document.getElementById("import-file-input");
@@ -187,17 +188,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const weeklyWins = cravingsData.filter(
       (win) => new Date(win.date) >= startOfWeek
     );
-    updateChart(weeklySavingsChartEl, weeklyWins, "Semana");
+    updateChart(weeklySavingsChartEl, weeklyWins, "a semana");
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthlyWins = cravingsData.filter(
       (win) => new Date(win.date) >= startOfMonth
     );
-    updateChart(monthlySavingsChartEl, monthlyWins, "Mês");
+    updateChart(monthlySavingsChartEl, monthlyWins, "o mês");
     const startOfYear = new Date(now.getFullYear(), 0, 1);
     const yearlyWins = cravingsData.filter(
       (win) => new Date(win.date) >= startOfYear
     );
-    updateChart(yearlySavingsChartEl, yearlyWins, "Ano");
+    updateChart(yearlySavingsChartEl, yearlyWins, "o ano");
   }
 
   function updateChart(chartEl, wins, period) {
@@ -211,19 +212,36 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const id in savings)
       if (savings[id] > maxSaving) maxSaving = savings[id];
     maxSaving = maxSaving > 20 ? maxSaving : 20;
-    chartEl.innerHTML = "";
-    for (const [id, config] of Object.entries(CRAVINGS_CONFIG)) {
-      const value = savings[id];
-      const barHeight = (value / maxSaving) * 100;
-      const group = document.createElement("div");
-      group.className = "chart-bar-group";
-      group.innerHTML = `<div class="bar-value">R$${value.toFixed(
-        2
-      )}</div><div class="chart-bar" style="height: ${barHeight}%; background-color: ${
-        config.color
-      };"></div><div class="bar-label">${config.name}</div>`;
-      chartEl.appendChild(group);
+
+    const descriptions = Object.entries(CRAVINGS_CONFIG).map(([id, config]) => {
+        const value = savings[id] || 0;
+        return `${config.name}: R$${value.toFixed(2)}`;
+    });
+    const ariaLabel = `Gráfico de economia para ${period}. ${descriptions.join(", ")}.`;
+    chartEl.setAttribute("aria-label", ariaLabel);
+
+    if (!chartEl.hasChildNodes()) {
+        for (const [id, config] of Object.entries(CRAVINGS_CONFIG)) {
+            const group = document.createElement("div");
+            group.className = "chart-bar-group";
+            group.innerHTML = `<div class="bar-value">R$0.00</div>
+                               <div class="chart-bar" style="height: 0%; background-color: ${config.color};"></div>
+                               <div class="bar-label">${config.name}</div>`;
+            chartEl.appendChild(group);
+        }
     }
+
+    const barGroups = chartEl.querySelectorAll('.chart-bar-group');
+    Object.keys(CRAVINGS_CONFIG).forEach((id, index) => {
+        const value = savings[id] || 0;
+        const barHeight = (value / maxSaving) * 100;
+        const group = barGroups[index];
+
+        if (group) {
+            group.querySelector('.bar-value').textContent = `R$${value.toFixed(2)}`;
+            group.querySelector('.chart-bar').style.height = `${barHeight}%`;
+        }
+    });
   }
 
   function handleCravingsPanelClick(e) {
@@ -265,110 +283,111 @@ document.addEventListener("DOMContentLoaded", () => {
   // Esta parte não foi alterada, então pode ser mantida como na versão anterior.
   // Colei aqui novamente por completude.
 
-  function calculateAllHabitMetrics(habit, displayDate, todayDate) {
-    const completions = habit.completions;
-    const habitStartDate = parseLocalDateString(habit.startDate);
-    if (habit.type === "good") {
-      const sortedDates = Object.keys(completions).sort();
-      let currentStreak = 0,
-        bestStreak = 0,
-        tempStreak = 0;
-      if (sortedDates.length > 0) {
+  function calculateGoodHabitMetrics(habit, todayDate) {
+    const completions = habit.completions || {};
+    const sortedDates = Object.keys(completions).sort();
+    let bestStreak = 0, tempStreak = 0;
+
+    if (sortedDates.length > 0) {
         for (let i = 0; i < sortedDates.length; i++) {
-          tempStreak++;
-          if (i + 1 < sortedDates.length) {
-            const currentDate = parseLocalDateString(sortedDates[i]);
-            const nextDate = parseLocalDateString(sortedDates[i + 1]);
-            const diffDays = (nextDate - currentDate) / 864e5;
-            if (diffDays > 1) {
-              bestStreak = Math.max(bestStreak, tempStreak);
-              tempStreak = 0;
+            tempStreak++;
+            if (i + 1 < sortedDates.length) {
+                const currentDate = parseLocalDateString(sortedDates[i]);
+                const nextDate = parseLocalDateString(sortedDates[i + 1]);
+                const diffDays = (nextDate - currentDate) / 864e5;
+                if (diffDays > 1) {
+                    bestStreak = Math.max(bestStreak, tempStreak);
+                    tempStreak = 0;
+                }
             }
-          }
         }
         bestStreak = Math.max(bestStreak, tempStreak);
-        let checkDate = new Date(todayDate);
-        if (completions[getLocalDateString(checkDate)]) {
-          currentStreak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-          while (completions[getLocalDateString(checkDate)]) {
-            currentStreak++;
-            checkDate.setDate(checkDate.getDate() - 1);
-          }
-        } else {
-          checkDate.setDate(checkDate.getDate() - 1);
-          if (completions[getLocalDateString(checkDate)]) {
-            let streakEndedYesterday = 0;
-            while (completions[getLocalDateString(checkDate)]) {
-              streakEndedYesterday++;
-              checkDate.setDate(checkDate.getDate() - 1);
-            }
-            bestStreak = Math.max(bestStreak, streakEndedYesterday);
-          }
-        }
-      }
-      bestStreak = Math.max(bestStreak, currentStreak);
-      const month = displayDate.getMonth(),
-        year = displayDate.getFullYear();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      let activeDaysInMonth = 0,
-        completedDaysInMonth = 0;
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        if (date >= habitStartDate && date <= todayDate) {
-          activeDaysInMonth++;
-          if (completions[getLocalDateString(date)]) completedDaysInMonth++;
-        }
-      }
-      const monthlySuccessRate =
-        activeDaysInMonth > 0
-          ? Math.round((completedDaysInMonth / activeDaysInMonth) * 100)
-          : 0;
-      return { currentStreak, bestStreak, monthlySuccessRate };
-    } else {
-      let currentStreak = 0,
-        bestStreak = 0,
-        tempStreak = 0;
-      let checkDate = new Date(todayDate);
-      while (
-        checkDate >= habitStartDate &&
-        !completions[getLocalDateString(checkDate)]
-      ) {
+    }
+
+    let currentStreak = 0;
+    let checkDate = new Date(todayDate);
+    if (completions[getLocalDateString(checkDate)]) {
         currentStreak++;
         checkDate.setDate(checkDate.getDate() - 1);
-      }
-      for (
-        let d = new Date(habitStartDate);
-        d <= todayDate;
-        d.setDate(d.getDate() + 1)
-      ) {
-        if (!completions[getLocalDateString(d)]) {
-          tempStreak++;
-        } else {
-          bestStreak = Math.max(bestStreak, tempStreak);
-          tempStreak = 0;
+        while (completions[getLocalDateString(checkDate)]) {
+            currentStreak++;
+            checkDate.setDate(checkDate.getDate() - 1);
         }
+    } else {
+        checkDate.setDate(checkDate.getDate() - 1);
+        if (completions[getLocalDateString(checkDate)]) {
+            let streakEndedYesterday = 0;
+            while (completions[getLocalDateString(checkDate)]) {
+                streakEndedYesterday++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            }
+            bestStreak = Math.max(bestStreak, streakEndedYesterday);
+        }
+    }
+
+    bestStreak = Math.max(bestStreak, currentStreak);
+    return { currentStreak, bestStreak };
+  }
+
+  function calculateBadHabitMetrics(habit, todayDate) {
+      const completions = habit.completions || {};
+      const habitStartDate = parseLocalDateString(habit.startDate);
+      let currentStreak = 0, bestStreak = 0, tempStreak = 0;
+
+      let checkDate = new Date(todayDate);
+      while (checkDate >= habitStartDate && !completions[getLocalDateString(checkDate)]) {
+          currentStreak++;
+          checkDate.setDate(checkDate.getDate() - 1);
+      }
+
+      for (let d = new Date(habitStartDate); d <= todayDate; d.setDate(d.getDate() + 1)) {
+          if (!completions[getLocalDateString(d)]) {
+              tempStreak++;
+          } else {
+              bestStreak = Math.max(bestStreak, tempStreak);
+              tempStreak = 0;
+          }
       }
       bestStreak = Math.max(bestStreak, tempStreak);
-      const month = displayDate.getMonth(),
-        year = displayDate.getFullYear();
+
+      return { currentStreak, bestStreak };
+  }
+
+  function calculateMonthlySuccessRate(habit, displayDate, todayDate) {
+      const completions = habit.completions || {};
+      const habitStartDate = parseLocalDateString(habit.startDate);
+      const month = displayDate.getMonth();
+      const year = displayDate.getFullYear();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      let activeDaysInMonth = 0,
-        failedDaysInMonth = 0;
+      let activeDaysInMonth = 0;
+      let completedDaysInMonth = 0;
+
       for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        if (date >= habitStartDate && date <= todayDate) {
-          activeDaysInMonth++;
-          if (completions[getLocalDateString(date)]) failedDaysInMonth++;
-        }
+          const date = new Date(year, month, day);
+          if (date >= habitStartDate && date <= todayDate) {
+              activeDaysInMonth++;
+              if (completions[getLocalDateString(date)]) {
+                  completedDaysInMonth++;
+              }
+          }
       }
-      const cleanDaysInMonth = activeDaysInMonth - failedDaysInMonth;
-      const monthlySuccessRate =
-        activeDaysInMonth > 0
-          ? Math.round((cleanDaysInMonth / activeDaysInMonth) * 100)
-          : 100;
+
+      if (habit.type === "good") {
+          return activeDaysInMonth > 0 ? Math.round((completedDaysInMonth / activeDaysInMonth) * 100) : 0;
+      } else { // bad habit
+          const cleanDaysInMonth = activeDaysInMonth - completedDaysInMonth;
+          return activeDaysInMonth > 0 ? Math.round((cleanDaysInMonth / activeDaysInMonth) * 100) : 100;
+      }
+  }
+
+  function calculateAllHabitMetrics(habit, displayDate, todayDate) {
+      const { currentStreak, bestStreak } = habit.type === "good"
+          ? calculateGoodHabitMetrics(habit, todayDate)
+          : calculateBadHabitMetrics(habit, todayDate);
+
+      const monthlySuccessRate = calculateMonthlySuccessRate(habit, displayDate, todayDate);
+
       return { currentStreak, bestStreak, monthlySuccessRate };
-    }
   }
   function render() {
     renderGrid();
@@ -376,95 +395,125 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCravingsPanel();
     renderSavingsCharts();
   }
-  function renderGrid() {
-    const currentYear = displayDate.getFullYear(),
-      currentMonth = displayDate.getMonth();
-    gridHeader.innerHTML = "";
-    gridBody.innerHTML = "";
-    if (habits.length === 0) {
-      gridBody.innerHTML = `<div class="grid-empty-message">Clique em "+" para adicionar seu primeiro hábito.</div>`;
-      return;
-    }
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  function createGridHeader(year, month) {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const gridTemplateColumns = `320px repeat(${daysInMonth}, 45px)`;
     gridHeader.style.gridTemplateColumns = gridTemplateColumns;
+
     let headerHTML = '<div class="habit-header">Hábito</div>';
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      const dayOfWeek = date
-        .toLocaleDateString("pt-BR", { weekday: "short" })
-        .toUpperCase()
-        .slice(0, 3);
-      headerHTML += `<div class="header-cell"><div class="day-number">${day}</div><div class="day-of-week">${dayOfWeek}</div></div>`;
+        const date = new Date(year, month, day);
+        const dayOfWeek = date.toLocaleDateString("pt-BR", { weekday: "short" }).toUpperCase().slice(0, 3);
+        headerHTML += `<div class="header-cell"><div class="day-number">${day}</div><div class="day-of-week">${dayOfWeek}</div></div>`;
     }
     gridHeader.innerHTML = headerHTML;
-    const gridBodyFragment = document.createDocumentFragment();
-    habits.forEach((habit, index) => {
-      const row = document.createElement("div");
-      row.className = "grid-row";
-      row.style.gridTemplateColumns = gridTemplateColumns;
-      row.dataset.id = habit.id;
+    return daysInMonth;
+  }
+
+  function createHabitRow(habit, index, daysInMonth, gridTemplateColumns) {
+    const row = document.createElement("div");
+    row.className = "grid-row";
+    row.style.gridTemplateColumns = gridTemplateColumns;
+    row.dataset.id = habit.id;
+
+    const nameCell = createHabitNameCell(habit);
+    row.appendChild(nameCell);
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const daySquare = createDaySquare(habit, day);
+        row.appendChild(daySquare);
+    }
+
+    setTimeout(() => row.classList.add("visible"), index * 50);
+    return row;
+  }
+
+  function createHabitNameCell(habit) {
       const nameCell = document.createElement("div");
       nameCell.className = "habit-name-cell";
       nameCell.title = "Clique duplo para editar";
+
       const metrics = calculateAllHabitMetrics(habit, displayDate, todayDate);
       const isGoodHabit = habit.type === "good";
-      const seqTitle = isGoodHabit
-        ? "Sequência atual de dias concluídos"
-        : "Sequência atual de dias limpos";
-      const recTitle = isGoodHabit
-        ? "Recorde de dias concluídos em sequência"
-        : "Recorde de dias limpos em sequência";
-      const successTitle = isGoodHabit
-        ? "Taxa de sucesso no mês atual"
-        : "Taxa de dias limpos no mês atual";
-      nameCell.innerHTML = `<div class="habit-info"><div class="name">${
-        habit.name
-      }</div><div class="goal">${
-        habit.goal || "&nbsp;"
-      }</div><div class="habit-metrics"><span title="${seqTitle}">Seq: ${
-        metrics.currentStreak
-      }</span><span title="${recTitle}">Rec: ${
-        metrics.bestStreak
-      }</span><span title="${successTitle}">% Mês: ${
-        metrics.monthlySuccessRate
-      }</span></div></div><button class="delete-habit-btn" aria-label="Remover hábito ${
-        habit.name
-      }"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>`;
-      row.appendChild(nameCell);
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(currentYear, currentMonth, day);
-        date.setHours(0, 0, 0, 0);
-        const dateStr = getLocalDateString(date);
-        const startDate = parseLocalDateString(habit.startDate);
-        const daySquare = document.createElement("button");
-        const classes = ["day-square"];
-        let isDisabled = true;
-        if (date.getTime() === todayDate.getTime()) classes.push("today");
-        if (date >= startDate && date <= todayDate) {
-          classes.push("active");
-          isDisabled = false;
-        } else if (date > todayDate) {
-          classes.push("future");
-        }
-        if (habit.completions[dateStr]) {
-          classes.push(habit.type === "good" ? "completed" : "failed");
-        }
-        daySquare.className = classes.join(" ");
-        daySquare.dataset.date = dateStr;
-        const ariaLabel =
-          habit.type === "good"
-            ? `Marcar hábito '${habit.name}' no dia ${day}`
-            : `Marcar recaída do hábito '${habit.name}' no dia ${day}`;
-        daySquare.setAttribute("aria-label", ariaLabel);
-        daySquare.disabled = isDisabled;
-        row.appendChild(daySquare);
-      }
-      gridBodyFragment.appendChild(row);
-      setTimeout(() => {
-        row.classList.add("visible");
-      }, index * 50);
+
+      const seqTitle = isGoodHabit ? "Sequência atual de dias concluídos" : "Sequência atual de dias limpos";
+      const recTitle = isGoodHabit ? "Recorde de dias concluídos em sequência" : "Recorde de dias limpos em sequência";
+      const successTitle = isGoodHabit ? "Taxa de sucesso no mês atual" : "Taxa de dias limpos no mês atual";
+
+      nameCell.innerHTML = `
+          <div class="habit-info">
+              <div class="name">${habit.name}</div>
+              <div class="goal">${habit.goal || "&nbsp;"}</div>
+              <div class="habit-metrics">
+                  <span title="${seqTitle}">Seq: ${metrics.currentStreak}</span>
+                  <span title="${recTitle}">Rec: ${metrics.bestStreak}</span>
+                  <span title="${successTitle}">% Mês: ${metrics.monthlySuccessRate}</span>
+              </div>
+          </div>
+          <button class="delete-habit-btn" aria-label="Remover hábito ${habit.name}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+          </button>`;
+      return nameCell;
+  }
+
+  function createDaySquare(habit, day) {
+    const currentYear = displayDate.getFullYear();
+    const currentMonth = displayDate.getMonth();
+    const date = new Date(currentYear, currentMonth, day);
+    date.setHours(0, 0, 0, 0);
+    const dateStr = getLocalDateString(date);
+    const startDate = parseLocalDateString(habit.startDate);
+
+    const daySquare = document.createElement("button");
+    const classes = ["day-square"];
+    let isDisabled = true;
+
+    if (date.getTime() === todayDate.getTime()) classes.push("today");
+    if (date > todayDate) {
+        classes.push("future");
+    } else if (date >= startDate) {
+        classes.push("active");
+        isDisabled = false;
+    }
+    if (habit.completions[dateStr]) {
+        classes.push(habit.type === "good" ? "completed" : "failed");
+    }
+
+    daySquare.className = classes.join(" ");
+    daySquare.dataset.date = dateStr;
+    const ariaLabel = habit.type === "good" ? `Marcar hábito '${habit.name}' no dia ${day}` : `Marcar recaída do hábito '${habit.name}' no dia ${day}`;
+    daySquare.setAttribute("aria-label", ariaLabel);
+    daySquare.disabled = isDisabled;
+
+    return daySquare;
+  }
+
+  function renderGrid() {
+    const currentYear = displayDate.getFullYear();
+    const currentMonth = displayDate.getMonth();
+
+    gridHeader.innerHTML = "";
+    gridBody.innerHTML = "";
+
+    if (habits.length === 0) {
+        gridBody.innerHTML = `<div class="grid-empty-message">Clique em "+" para adicionar seu primeiro hábito.</div>`;
+        return;
+    }
+
+    const daysInMonth = createGridHeader(currentYear, currentMonth);
+    const gridTemplateColumns = `320px repeat(${daysInMonth}, 45px)`;
+    const gridBodyFragment = document.createDocumentFragment();
+
+    habits.forEach((habit, index) => {
+        const row = createHabitRow(habit, index, daysInMonth, gridTemplateColumns);
+        gridBodyFragment.appendChild(row);
     });
+
     gridBody.appendChild(gridBodyFragment);
     scrollToToday();
   }
@@ -649,6 +698,12 @@ document.addEventListener("DOMContentLoaded", () => {
     displayDate.setMonth(displayDate.getMonth() + offset);
     render();
   }
+
+  function handleTodayButtonClick() {
+    displayDate = new Date();
+    displayDate.setDate(1);
+    render();
+  }
   function handleExportData() {
     if (habits.length === 0 && cravingsData.length === 0) {
       showToast("Não há dados para exportar.", "error");
@@ -761,6 +816,7 @@ document.addEventListener("DOMContentLoaded", () => {
     gridBody.addEventListener("dblclick", handleHabitDoubleClick);
     prevMonthBtn.addEventListener("click", () => handleMonthChange(-1));
     nextMonthBtn.addEventListener("click", () => handleMonthChange(1));
+    todayBtn.addEventListener("click", handleTodayButtonClick);
     exportBtn.addEventListener("click", handleExportData);
     importBtn.addEventListener("click", () => importFileInput.click());
     importFileInput.addEventListener("change", handleImportData);

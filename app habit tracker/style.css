@@ -425,6 +425,11 @@ body {
   display: flex;
   flex-direction: column;
 }
+#today-btn {
+  margin: 10px 0;
+  padding: 10px;
+  width: 100%;
+}
 .info-panel h3 {
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -710,7 +715,7 @@ svg {
   width: 40px;
   background-color: #ccc;
   border-radius: 6px 6px 0 0;
-  transition: height 0.5s ease-out;
+  transition: height 0.5s ease-out, opacity 0.5s ease-out;
   display: flex;
   justify-content: center;
   padding-top: 5px;
