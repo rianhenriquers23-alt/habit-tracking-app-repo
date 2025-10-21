@@ -1,0 +1,264 @@
+<!-- index.html (VERSÃO DE TESTE COM ECONOMIA DE VÍCIOS) -->
+
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Habit Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Definição do gradiente para o anel de progresso -->
+    <svg width="0" height="0" style="position: absolute">
+      <defs>
+        <linearGradient
+          id="progress-gradient"
+          x1="0%"
+          y1="0%"
+          x2="0%"
+          y2="100%"
+        >
+          <stop offset="0%" style="stop-color: #2ecc71; stop-opacity: 1" />
+          <stop offset="100%" style="stop-color: #27ae60; stop-opacity: 1" />
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <div class="app-container">
+      <aside class="left-panel">
+        <header class="app-header">
+          <nav class="month-navigation" aria-label="Navegação do Calendário">
+            <button
+              id="prev-month-btn"
+              class="month-nav-btn"
+              aria-label="Mês Anterior"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <h1 id="current-month-title" aria-live="polite"></h1>
+            <button
+              id="next-month-btn"
+              class="month-nav-btn"
+              aria-label="Mês Seguinte"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </nav>
+          <p>HÁBITOS FUNDAMENTAIS</p>
+        </header>
+        <div class="stats-container">
+          <span id="active-habits-count"></span
+          ><span id="scheduled-habits-count"></span>
+        </div>
+
+        <!-- ===== BLOCO CORRIGIDO ===== -->
+        <div class="progress-container">
+          <!-- O SVG agora está maior (160x160) com raio e centro ajustados -->
+          <svg class="progress-ring" width="160" height="160">
+            <circle class="progress-ring__circle-bg" r="72" cx="80" cy="80" />
+            <circle
+              id="progress-ring-circle"
+              class="progress-ring__circle"
+              r="72"
+              cx="80"
+              cy="80"
+            />
+          </svg>
+          <div class="progress-text-container">
+            <span id="progress-text">0%</span>
+            <p>CONCLUSÃO GERAL</p>
+          </div>
+        </div>
+        <!-- =========================== -->
+
+        <!-- ======================================================== -->
+        <!-- ==        ESTA ÁREA FOI ADICIONADA E PREPARADA          == -->
+        <!-- ======================================================== -->
+        <div id="cravings-panel" class="feature-panel-left">
+          <h3>ECONOMIZAR AO RESISTIR</h3>
+          <ul id="cravings-list">
+            <!-- Gerado via JS -->
+          </ul>
+        </div>
+        <!-- ======================================================== -->
+
+        <div class="action-buttons">
+          <button
+            id="add-habit-btn"
+            class="action-btn add"
+            aria-label="Adicionar Novo Hábito"
+          >
+            <span aria-hidden="true">+</span>
+            <span class="visually-hidden">Adicionar Novo Hábito</span>
+          </button>
+          <button
+            id="import-btn"
+            class="action-btn"
+            aria-label="Importar Dados de Arquivo"
+          >
+            <span aria-hidden="true">↑</span>
+            <span class="visually-hidden">Importar Dados de Arquivo</span>
+          </button>
+          <input
+            type="file"
+            id="import-file-input"
+            accept=".json"
+            style="display: none"
+          />
+          <button
+            id="export-btn"
+            class="action-btn"
+            aria-label="Exportar Dados para Arquivo"
+          >
+            <span aria-hidden="true">↓</span>
+            <span class="visually-hidden">Exportar Dados para Arquivo</span>
+          </button>
+          <button
+            id="clear-all-btn"
+            class="action-btn delete"
+            aria-label="Limpar Todos os Dados"
+          >
+            <span aria-hidden="true">✕</span>
+            <span class="visually-hidden">Limpar Todos os Dados</span>
+          </button>
+        </div>
+      </aside>
+      <main class="main-panel">
+        <div id="habit-grid" class="habit-grid-container">
+          <div id="grid-header" class="grid-header"></div>
+          <div id="grid-body" class="grid-body"></div>
+        </div>
+
+        <div class="info-panels">
+          <article class="info-panel">
+            <h3 class="chart-title">ECONOMIA NA SEMANA</h3>
+            <div id="weekly-savings-chart" class="chart-container"></div>
+          </article>
+          <article class="info-panel">
+            <h3 class="chart-title">ECONOMIA NO MÊS</h3>
+            <div id="monthly-savings-chart" class="chart-container"></div>
+          </article>
+          <article class="info-panel">
+            <h3 class="chart-title">ECONOMIA NO ANO</h3>
+            <div id="yearly-savings-chart" class="chart-container"></div>
+          </article>
+        </div>
+      </main>
+    </div>
+
+    <!-- MODAIS (sem alteração) -->
+    <div id="add-habit-modal" class="modal">
+      <div class="modal-content">
+        <h2 id="modal-title"></h2>
+        <form id="add-habit-form">
+          <input type="hidden" id="habit-id" />
+          <div class="form-group">
+            <label for="habit-name">Nome do hábito</label
+            ><input
+              type="text"
+              id="habit-name"
+              placeholder="Ex: Meditar 10min"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="habit-goal">Meta / Horário</label
+            ><input type="text" id="habit-goal" placeholder="Ex: 7h da manhã" />
+          </div>
+          <div class="form-group">
+            <label for="habit-type">Tipo</label
+            ><select id="habit-type">
+              <option value="good">Bom hábito (adicionar)</option>
+              <option value="bad">Mau hábito (remover)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="habit-start-date">Quando ativar?</label
+            ><input type="date" id="habit-start-date" required />
+          </div>
+          <div class="form-buttons">
+            <button type="button" class="button-secondary" id="cancel-btn">
+              Cancelar</button
+            ><button type="submit" class="button-primary"></button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="warning-modal" class="modal">
+      <div class="modal-content warning">
+        <h2>Aviso de Consolidação</h2>
+        <p id="warning-text"></p>
+        <div class="form-buttons">
+          <button
+            type="button"
+            class="button-secondary"
+            id="wait-recommended-btn"
+          >
+            Aguardar (Recomendado)</button
+          ><button type="button" class="button-primary" id="add-anyway-btn">
+            Adicionar Mesmo Assim
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="confirm-modal" class="modal">
+      <div class="modal-content warning">
+        <h2 id="confirm-title"></h2>
+        <p id="confirm-text"></p>
+        <div class="form-buttons">
+          <button
+            type="button"
+            class="button-secondary"
+            id="confirm-cancel-btn"
+          >
+            Cancelar</button
+          ><button
+            type="button"
+            class="button-primary delete"
+            id="confirm-ok-btn"
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js" defer></script>
+    <div id="toast-container"></div>
+  </body>
+</html>
