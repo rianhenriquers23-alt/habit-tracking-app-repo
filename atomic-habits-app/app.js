@@ -37,16 +37,31 @@ document.addEventListener('DOMContentLoaded', () => {
         identitiesList.innerHTML = ''; // Clear the list before rendering
         identities.forEach(identity => {
             const identityElement = document.createElement('div');
-            identityElement.textContent = identity.texto;
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = identity.texto;
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Editar';
+            editBtn.className = 'edit-btn';
+            editBtn.dataset.id = identity.id;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Deletar';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.dataset.id = identity.id;
+
+            identityElement.appendChild(textSpan);
+            identityElement.appendChild(editBtn);
+            identityElement.appendChild(deleteBtn);
+
             identitiesList.appendChild(identityElement);
         });
     };
 
     addIdentityBtn.addEventListener('click', () => {
         const text = identityInput.value.trim();
-        if (text === '') {
-            return;
-        }
+        if (text === '') return;
 
         const newIdentity = {
             id: Date.now(),
@@ -59,6 +74,30 @@ document.addEventListener('DOMContentLoaded', () => {
         saveIdentities(identities);
         identityInput.value = '';
         renderIdentities();
+    });
+
+    identitiesList.addEventListener('click', (e) => {
+        const id = e.target.dataset.id;
+        if (!id) return;
+
+        if (e.target.classList.contains('delete-btn')) {
+            const confirmed = confirm('Tem certeza que deseja deletar esta identidade?');
+            if (confirmed) {
+                identities = identities.filter(identity => identity.id != id);
+                saveIdentities(identities);
+                renderIdentities();
+            }
+        }
+
+        if (e.target.classList.contains('edit-btn')) {
+            const identityToEdit = identities.find(identity => identity.id == id);
+            const newText = prompt('Digite o novo texto para a identidade:', identityToEdit.texto);
+            if (newText && newText.trim() !== '') {
+                identityToEdit.texto = newText.trim();
+                saveIdentities(identities);
+                renderIdentities();
+            }
+        }
     });
 
     // Initial render of identities on page load
