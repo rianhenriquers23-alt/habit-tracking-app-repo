@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // --- ELEMENT SELECTORS ---
     // =================================================================
+    // Dashboard
+    const currentDateEl = document.getElementById('currentDate');
+    const todayHabitsEl = document.getElementById('todayHabits');
     // Identities
     const identityInput = document.getElementById('identityInput');
     const addIdentityBtn = document.getElementById('addIdentityBtn');
@@ -54,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveIdentities();
         renderIdentities();
         populateIdentitiesDropdown();
+        renderDashboard(); // BUG FIX: Re-render dashboard in case identity names change
     }
 
     function renderIdentities() {
@@ -122,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateAndRenderHabits() {
         saveHabits();
         renderHabits();
+        renderDashboard();
     }
 
     function renderHabits() {
@@ -203,8 +208,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =================================================================
+    // --- DASHBOARD MANAGEMENT ---
+    // =================================================================
+    function renderDashboard() {
+        const today = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        currentDateEl.textContent = new Intl.DateTimeFormat('pt-BR', options).format(today);
+
+        const activeHabits = habits.filter(habit => habit.active);
+        todayHabitsEl.innerHTML = '';
+
+        if (activeHabits.length === 0) {
+            todayHabitsEl.textContent = 'Nenhum hábito ativo para hoje.';
+            return;
+        }
+
+        activeHabits.forEach(habit => {
+            const habitEl = document.createElement('div');
+            habitEl.className = 'today-habit-item';
+            habitEl.innerHTML = `
+                <input type="checkbox" data-id="${habit.id}">
+                <span>${habit.name}</span>
+                <span>(Streak: ${habit.currentStreak})</span>
+            `;
+            todayHabitsEl.appendChild(habitEl);
+        });
+    }
+
+
+    // =================================================================
     // --- INITIAL LOAD ---
     // =================================================================
     updateAndRenderIdentities();
-    renderHabits();
+    updateAndRenderHabits();
 });
