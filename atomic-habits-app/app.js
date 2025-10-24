@@ -128,7 +128,22 @@ document.addEventListener('DOMContentLoaded', () => {
         habitsList.innerHTML = '';
         habits.forEach(habit => {
             const habitElement = document.createElement('div');
-            habitElement.textContent = habit.name;
+            habitElement.className = 'habit-card';
+
+            const linkedIdentity = identities.find(i => i.id == habit.identityId);
+            const identityText = linkedIdentity ? linkedIdentity.texto : 'Identidade não encontrada';
+
+            habitElement.innerHTML = `
+                <h4>${habit.name}</h4>
+                <p><strong>Identidade:</strong> ${identityText}</p>
+                <p><strong>Gatilho:</strong> ${habit.cue || 'N/A'}</p>
+                <p><strong>Empilhamento:</strong> ${habit.stack || 'N/A'}</p>
+                <p><strong>Versão 2 min:</strong> ${habit.twoMin || 'N/A'}</p>
+                <p><strong>Horário:</strong> ${habit.time || 'N/A'}</p>
+                <p><strong>Streak Atual:</strong> ${habit.currentStreak}</p>
+                <button class="edit-habit-btn" data-id="${habit.id}">Editar</button>
+                <button class="delete-habit-btn" data-id="${habit.id}">Deletar</button>
+            `;
             habitsList.appendChild(habitElement);
         });
     }
@@ -169,6 +184,22 @@ document.addEventListener('DOMContentLoaded', () => {
         habits.push(newHabit);
         clearHabitForm();
         updateAndRenderHabits();
+    });
+
+    habitsList.addEventListener('click', (e) => {
+        const id = e.target.dataset.id;
+        if (!id) return;
+
+        if (e.target.classList.contains('delete-habit-btn')) {
+            if (confirm('Tem certeza que deseja deletar este hábito?')) {
+                habits = habits.filter(h => h.id != id);
+                updateAndRenderHabits();
+            }
+        }
+
+        if (e.target.classList.contains('edit-habit-btn')) {
+            alert('Função de editar será implementada');
+        }
     });
 
     // =================================================================
