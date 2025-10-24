@@ -16,10 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Identity Management Logic ---
+    // --- Element Selectors ---
     const identityInput = document.getElementById('identityInput');
     const addIdentityBtn = document.getElementById('addIdentityBtn');
     const identitiesList = document.getElementById('identitiesList');
+    const habitIdentitySelect = document.getElementById('habitIdentity');
+
+    // --- Data Management ---
     const storageKey = 'atomicHabits_identities';
 
     const loadIdentities = () => {
@@ -33,11 +36,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let identities = loadIdentities();
 
+    // --- Combined Update and Render Function ---
+    const updateAndRenderIdentities = () => {
+        saveIdentities(identities);
+        renderIdentities();
+        populateIdentitiesDropdown();
+    };
+
+    // --- Rendering Functions ---
     const renderIdentities = () => {
-        identitiesList.innerHTML = ''; // Clear the list before rendering
+        identitiesList.innerHTML = '';
         identities.forEach(identity => {
             const identityElement = document.createElement('div');
-
             const textSpan = document.createElement('span');
             textSpan.textContent = identity.texto;
 
@@ -59,6 +69,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const populateIdentitiesDropdown = () => {
+        habitIdentitySelect.innerHTML = '<option value="">Selecione uma identidade</option>';
+        identities.forEach(identity => {
+            const option = document.createElement('option');
+            option.value = identity.id;
+            option.textContent = identity.texto;
+            habitIdentitySelect.appendChild(option);
+        });
+    };
+
+    // --- Event Listeners ---
     addIdentityBtn.addEventListener('click', () => {
         const text = identityInput.value.trim();
         if (text === '') return;
@@ -71,9 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         identities.push(newIdentity);
-        saveIdentities(identities);
         identityInput.value = '';
-        renderIdentities();
+        updateAndRenderIdentities();
     });
 
     identitiesList.addEventListener('click', (e) => {
@@ -84,8 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmed = confirm('Tem certeza que deseja deletar esta identidade?');
             if (confirmed) {
                 identities = identities.filter(identity => identity.id != id);
-                saveIdentities(identities);
-                renderIdentities();
+                updateAndRenderIdentities();
             }
         }
 
@@ -94,12 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const newText = prompt('Digite o novo texto para a identidade:', identityToEdit.texto);
             if (newText && newText.trim() !== '') {
                 identityToEdit.texto = newText.trim();
-                saveIdentities(identities);
-                renderIdentities();
+                updateAndRenderIdentities();
             }
         }
     });
 
-    // Initial render of identities on page load
-    renderIdentities();
+    // --- Initial Load ---
+    updateAndRenderIdentities();
 });
