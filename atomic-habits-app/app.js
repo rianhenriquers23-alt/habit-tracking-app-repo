@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Tab Navigation Logic ---
+    // =================================================================
+    // --- TAB NAVIGATION ---
+    // =================================================================
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -16,60 +18,56 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Element Selectors ---
+    // =================================================================
+    // --- ELEMENT SELECTORS ---
+    // =================================================================
+    // Identities
     const identityInput = document.getElementById('identityInput');
     const addIdentityBtn = document.getElementById('addIdentityBtn');
     const identitiesList = document.getElementById('identitiesList');
+    // Habits
     const habitIdentitySelect = document.getElementById('habitIdentity');
+    const habitNameInput = document.getElementById('habitName');
+    const habitCueInput = document.getElementById('habitCue');
+    const habitStackInput = document.getElementById('habitStack');
+    const habitTwoMinInput = document.getElementById('habitTwoMin');
+    const habitTimeInput = document.getElementById('habitTime');
+    const addHabitBtn = document.getElementById('addHabitBtn');
+    const habitsList = document.getElementById('habitsList');
 
-    // --- Data Management ---
-    const storageKey = 'atomicHabits_identities';
-
-    const loadIdentities = () => {
-        const identitiesJSON = localStorage.getItem(storageKey);
-        return identitiesJSON ? JSON.parse(identitiesJSON) : [];
-    };
-
-    const saveIdentities = (identities) => {
-        localStorage.setItem(storageKey, JSON.stringify(identities));
-    };
-
+    // =================================================================
+    // --- IDENTITY MANAGEMENT ---
+    // =================================================================
+    const identitiesStorageKey = 'atomicHabits_identities';
     let identities = loadIdentities();
 
-    // --- Combined Update and Render Function ---
-    const updateAndRenderIdentities = () => {
-        saveIdentities(identities);
+    function loadIdentities() {
+        const identitiesJSON = localStorage.getItem(identitiesStorageKey);
+        return identitiesJSON ? JSON.parse(identitiesJSON) : [];
+    }
+
+    function saveIdentities() {
+        localStorage.setItem(identitiesStorageKey, JSON.stringify(identities));
+    }
+
+    function updateAndRenderIdentities() {
+        saveIdentities();
         renderIdentities();
         populateIdentitiesDropdown();
-    };
+    }
 
-    // --- Rendering Functions ---
-    const renderIdentities = () => {
+    function renderIdentities() {
         identitiesList.innerHTML = '';
         identities.forEach(identity => {
-            const identityElement = document.createElement('div');
-            const textSpan = document.createElement('span');
-            textSpan.textContent = identity.texto;
-
-            const editBtn = document.createElement('button');
-            editBtn.textContent = 'Editar';
-            editBtn.className = 'edit-btn';
-            editBtn.dataset.id = identity.id;
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Deletar';
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.dataset.id = identity.id;
-
-            identityElement.appendChild(textSpan);
-            identityElement.appendChild(editBtn);
-            identityElement.appendChild(deleteBtn);
-
-            identitiesList.appendChild(identityElement);
+            const el = document.createElement('div');
+            el.innerHTML = `<span>${identity.texto}</span>
+                          <button class="edit-btn" data-id="${identity.id}">Editar</button>
+                          <button class="delete-btn" data-id="${identity.id}">Deletar</button>`;
+            identitiesList.appendChild(el);
         });
-    };
+    }
 
-    const populateIdentitiesDropdown = () => {
+    function populateIdentitiesDropdown() {
         habitIdentitySelect.innerHTML = '<option value="">Selecione uma identidade</option>';
         identities.forEach(identity => {
             const option = document.createElement('option');
@@ -77,21 +75,12 @@ document.addEventListener('DOMContentLoaded', () => {
             option.textContent = identity.texto;
             habitIdentitySelect.appendChild(option);
         });
-    };
+    }
 
-    // --- Event Listeners ---
     addIdentityBtn.addEventListener('click', () => {
         const text = identityInput.value.trim();
         if (text === '') return;
-
-        const newIdentity = {
-            id: Date.now(),
-            texto: text,
-            datacriacao: new Date().toISOString(),
-            contador: 0
-        };
-
-        identities.push(newIdentity);
+        identities.push({ id: Date.now(), texto: text, datacriacao: new Date().toISOString(), contador: 0 });
         identityInput.value = '';
         updateAndRenderIdentities();
     });
@@ -99,25 +88,92 @@ document.addEventListener('DOMContentLoaded', () => {
     identitiesList.addEventListener('click', (e) => {
         const id = e.target.dataset.id;
         if (!id) return;
-
         if (e.target.classList.contains('delete-btn')) {
-            const confirmed = confirm('Tem certeza que deseja deletar esta identidade?');
-            if (confirmed) {
-                identities = identities.filter(identity => identity.id != id);
+            if (confirm('Tem certeza?')) {
+                identities = identities.filter(i => i.id != id);
                 updateAndRenderIdentities();
             }
         }
-
         if (e.target.classList.contains('edit-btn')) {
-            const identityToEdit = identities.find(identity => identity.id == id);
-            const newText = prompt('Digite o novo texto para a identidade:', identityToEdit.texto);
-            if (newText && newText.trim() !== '') {
-                identityToEdit.texto = newText.trim();
+            const identity = identities.find(i => i.id == id);
+            const newText = prompt('Novo texto:', identity.texto);
+            if (newText && newText.trim()) {
+                identity.texto = newText.trim();
                 updateAndRenderIdentities();
             }
         }
     });
 
-    // --- Initial Load ---
+    // =================================================================
+    // --- HABIT MANAGEMENT ---
+    // =================================================================
+    const habitsStorageKey = 'atomicHabits_habits';
+    let habits = loadHabits();
+
+    function loadHabits() {
+        const habitsJSON = localStorage.getItem(habitsStorageKey);
+        return habitsJSON ? JSON.parse(habitsJSON) : [];
+    }
+
+    function saveHabits() {
+        localStorage.setItem(habitsStorageKey, JSON.stringify(habits));
+    }
+
+    function updateAndRenderHabits() {
+        saveHabits();
+        renderHabits();
+    }
+
+    function renderHabits() {
+        habitsList.innerHTML = '';
+        habits.forEach(habit => {
+            const habitElement = document.createElement('div');
+            habitElement.textContent = habit.name;
+            habitsList.appendChild(habitElement);
+        });
+    }
+
+    function clearHabitForm() {
+        habitIdentitySelect.value = '';
+        habitNameInput.value = '';
+        habitCueInput.value = '';
+        habitStackInput.value = '';
+        habitTwoMinInput.value = '';
+        habitTimeInput.value = '';
+    }
+
+    addHabitBtn.addEventListener('click', () => {
+        const identityId = habitIdentitySelect.value;
+        const name = habitNameInput.value.trim();
+
+        if (!name || !identityId) {
+            alert('Por favor, selecione uma identidade e insira um nome para o hábito.');
+            return;
+        }
+
+        const newHabit = {
+            id: Date.now(),
+            identityId: identityId,
+            name: name,
+            cue: habitCueInput.value.trim(),
+            stack: habitStackInput.value.trim(),
+            twoMin: habitTwoMinInput.value.trim(),
+            time: habitTimeInput.value,
+            createdDate: new Date().toISOString(),
+            active: true,
+            currentStreak: 0,
+            bestStreak: 0,
+            totalCompletions: 0
+        };
+
+        habits.push(newHabit);
+        clearHabitForm();
+        updateAndRenderHabits();
+    });
+
+    // =================================================================
+    // --- INITIAL LOAD ---
+    // =================================================================
     updateAndRenderIdentities();
+    renderHabits();
 });
