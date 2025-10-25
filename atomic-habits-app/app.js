@@ -190,6 +190,32 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(completionsStorageKey, JSON.stringify(completions));
     }
 
+    function calculateStreak(habitId) {
+        const habitCompletions = completions.filter(c => c.habitId == habitId);
+        if (habitCompletions.length === 0) return 0;
+
+        const completionDates = new Set(habitCompletions.map(c => c.date));
+        const formatDate = (date) => date.toISOString().split('T')[0];
+
+        let streak = 0;
+        let currentDate = new Date();
+
+        // Determina o ponto de partida para a contagem do streak.
+        // Se o hábito não foi concluído hoje, começamos a contagem a partir de ontem
+        // para preservar o streak do dia anterior.
+        if (!completionDates.has(formatDate(currentDate))) {
+            currentDate.setDate(currentDate.getDate() - 1);
+        }
+
+        // Iteramos para trás, contando os dias consecutivos.
+        while (completionDates.has(formatDate(currentDate))) {
+            streak++;
+            currentDate.setDate(currentDate.getDate() - 1);
+        }
+
+        return streak;
+    }
+
     // =================================================================
     // --- DASHBOARD MANAGEMENT ---
     // =================================================================
@@ -205,6 +231,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const todayDateString = getTodayDateString();
         activeHabits.forEach(habit => {
+            // Recalcula o streak sempre que o dashboard é renderizado para garantir que esteja sempre atualizado.
+            const currentStreak = calculateStreak(String(habit.id));
+            habit.currentStreak = currentStreak;
+            if (currentStreak > habit.bestStreak) {
+                habit.bestStreak = currentStreak;
+            }
+
             const isCompleted = completions.some(c => c.habitId == habit.id && c.date === todayDateString);
             const el = document.createElement('div');
             el.className = 'today-habit-item';
@@ -213,17 +246,36 @@ document.addEventListener('DOMContentLoaded', () => {
                           <span>(Streak: ${habit.currentStreak})</span>`;
             todayHabitsEl.appendChild(el);
         });
+        // Salva os hábitos, pois os streaks podem ter sido atualizados.
+        saveHabits();
     }
     todayHabitsEl.addEventListener('change', (e) => {
         if (e.target.type !== 'checkbox') return;
         const habitId = e.target.dataset.id;
+        const habit = habits.find(h => h.id == habitId);
+        if (!habit) return;
+
         const today = getTodayDateString();
-        if (e.target.checked) {
+        const isChecked = e.target.checked;
+
+        if (isChecked) {
             completions.push({ habitId, date: today, timestamp: Date.now() });
+            habit.totalCompletions++;
         } else {
             completions = completions.filter(c => !(c.habitId == habitId && c.date === today));
+            habit.totalCompletions--;
         }
+
         saveCompletions();
+
+        const newStreak = calculateStreak(habitId);
+        habit.currentStreak = newStreak;
+        if (newStreak > habit.bestStreak) {
+            habit.bestStreak = newStreak;
+        }
+
+        saveHabits();
+        renderDashboard();
     });
 
     // =================================================================
