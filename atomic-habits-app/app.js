@@ -377,6 +377,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const el = document.createElement('div');
             el.className = 'progress-card';
+            const habitCompletions = completions.filter(c => c.habitId == habit.id);
+            const completionDates = new Set(habitCompletions.map(c => c.date));
+            const formatDate = (date) => date.toISOString().split('T')[0];
+
+            let heatmapHTML = '<h4>Últimos 30 dias</h4><div class="heatmap-container">';
+            // Itera do dia mais recente (hoje) para o mais antigo.
+            for (let i = 0; i < 30; i++) {
+                const date = new Date(); // Cria uma nova data a cada iteração
+                date.setDate(date.getDate() - i);
+                const dateString = formatDate(date);
+                const isCompleted = completionDates.has(dateString);
+                heatmapHTML += `<div class="heatmap-day" data-date="${dateString}" data-completed="${isCompleted}">${isCompleted ? '✓' : ''}</div>`;
+            }
+            heatmapHTML += '</div>';
+
             el.innerHTML = `
                 <h3>${habit.name}</h3>
                 <p><strong>Streak Atual:</strong> ${habit.currentStreak} dias</p>
@@ -384,6 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p><strong>Total de Conclusões:</strong> ${habit.totalCompletions}</p>
                 <p><strong>Taxa de Conclusão:</strong> ${completionRate}%</p>
                 <p><small>Hábito criado há ${daysSinceCreation} dia(s).</small></p>
+                ${heatmapHTML}
             `;
             progressStatsEl.appendChild(el);
         });
