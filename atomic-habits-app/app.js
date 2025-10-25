@@ -348,6 +348,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =================================================================
+    // --- DATA MANAGEMENT ---
+    // =================================================================
+    const exportBtn = document.getElementById('exportBtn');
+
+    exportBtn.addEventListener('click', () => {
+        const data = {
+            identities: loadIdentities(),
+            habits: loadHabits(),
+            completions: loadCompletions()
+        };
+
+        const jsonData = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        const today = new Date().toISOString().split('T')[0];
+        a.href = url;
+        a.download = `atomic-habits-backup-${today}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    // =================================================================
     // --- INITIAL LOAD ---
     // =================================================================
     updateAndRenderIdentities();
