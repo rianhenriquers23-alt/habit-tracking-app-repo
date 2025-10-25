@@ -269,17 +269,40 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const todayDateString = getTodayDateString();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayDateString = yesterday.toISOString().split('T')[0];
+
         activeHabits.forEach(habit => {
-            // Recalcula o streak sempre que o dashboard é renderizado para garantir que esteja sempre atualizado.
             habit.currentStreak = calculateStreak(String(habit.id));
             habit.bestStreak = calculateBestStreak(String(habit.id));
 
-            const isCompleted = completions.some(c => c.habitId == habit.id && c.date === todayDateString);
+            const isCompletedToday = completions.some(c => c.habitId == habit.id && c.date === todayDateString);
+            const wasCompletedYesterday = completions.some(c => c.habitId == habit.id && c.date === yesterdayDateString);
+
+            let skippedYesterday = false;
+            // Só mostra o alerta se o hábito não foi concluído hoje ainda.
+            if (!isCompletedToday && !wasCompletedYesterday) {
+                skippedYesterday = true;
+            }
+
             const el = document.createElement('div');
             el.className = 'today-habit-item';
-            el.innerHTML = `<input type="checkbox" data-id="${habit.id}" ${isCompleted ? 'checked' : ''}>
-                          <span>${habit.name}</span>
-                          <span>(Streak: ${habit.currentStreak})</span>`;
+            if (skippedYesterday) {
+                el.setAttribute('data-skipped', 'true');
+            }
+
+            let alertHTML = '';
+            if (skippedYesterday) {
+                alertHTML = `<span class="skipped-alert">⚠️ Você pulou ontem! Não perca 2 dias seguidos!</span>`;
+            }
+
+            el.innerHTML = `
+                <input type="checkbox" data-id="${habit.id}" ${isCompletedToday ? 'checked' : ''}>
+                <span>${habit.name}</span>
+                <span>(Streak: ${habit.currentStreak})</span>
+                ${alertHTML}
+            `;
             todayHabitsEl.appendChild(el);
         });
         // Salva os hábitos, pois os streaks podem ter sido atualizados.
@@ -351,6 +374,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DATA MANAGEMENT ---
     // =================================================================
     const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const fileInput = document.getElementById('fileInput');
+
+    importBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (confirm('Isso vai sobrescrever todos os dados atuais. Continuar?')) {
+                    if (data.identities && data.habits && data.completions) {
+                        localStorage.setItem(identitiesStorageKey, JSON.stringify(data.identities));
+                        localStorage.setItem(habitsStorageKey, JSON.stringify(data.habits));
+                        localStorage.setItem(completionsStorageKey, JSON.stringify(data.completions));
+                        location.reload();
+                    } else {
+                        alert('Arquivo de importação inválido. Faltam dados necessários.');
+                    }
+                }
+            } catch (error) {
+                alert('Erro ao ler o arquivo JSON. Verifique o formato do arquivo.');
+            }
+        };
+        reader.readAsText(file);
+        // Limpa o valor do input para permitir importar o mesmo arquivo novamente
+        fileInput.value = '';
+    });
 
     exportBtn.addEventListener('click', () => {
         const data = {
