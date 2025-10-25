@@ -58,13 +58,30 @@ document.addEventListener('DOMContentLoaded', () => {
         populateIdentitiesDropdown();
         renderDashboard(); // This was the missing link
     }
+
+    function updateIdentityCounters() {
+        identities.forEach(identity => {
+            const linkedHabits = habits.filter(h => h.identityId == identity.id);
+            const totalCompletions = linkedHabits.reduce((sum, habit) => sum + habit.totalCompletions, 0);
+            identity.contador = totalCompletions;
+        });
+        saveIdentities();
+    }
     function renderIdentities() {
         identitiesList.innerHTML = '';
         identities.forEach(identity => {
             const el = document.createElement('div');
-            el.innerHTML = `<span>${identity.texto}</span>
-                          <button class="edit-btn" data-id="${identity.id}">Editar</button>
-                          <button class="delete-btn" data-id="${identity.id}">Deletar</button>`;
+            el.className = 'identity-item';
+            el.innerHTML = `
+                <div>
+                    <span>${identity.texto}</span>
+                    <small>Você provou ser essa identidade ${identity.contador || 0} vezes</small>
+                </div>
+                <div>
+                    <button class="edit-btn" data-id="${identity.id}">Editar</button>
+                    <button class="delete-btn" data-id="${identity.id}">Deletar</button>
+                </div>
+            `;
             identitiesList.appendChild(el);
         });
     }
@@ -331,7 +348,9 @@ document.addEventListener('DOMContentLoaded', () => {
         habit.bestStreak = calculateBestStreak(habitId);
 
         saveHabits();
+        updateIdentityCounters();
         renderDashboard();
+        renderIdentities(); // Para atualizar o contador na tela de identidades
     });
 
     // =================================================================
