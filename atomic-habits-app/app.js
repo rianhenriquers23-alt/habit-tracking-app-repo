@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (content) {
                 content.classList.add('active');
             }
+            // Se a aba de progresso for clicada, renderiza as estatísticas
+            if (target === 'progress') {
+                renderProgressStats();
+            }
         });
     });
 
@@ -200,20 +204,55 @@ document.addEventListener('DOMContentLoaded', () => {
         let streak = 0;
         let currentDate = new Date();
 
-        // Determina o ponto de partida para a contagem do streak.
-        // Se o hábito não foi concluído hoje, começamos a contagem a partir de ontem
-        // para preservar o streak do dia anterior.
         if (!completionDates.has(formatDate(currentDate))) {
             currentDate.setDate(currentDate.getDate() - 1);
         }
 
-        // Iteramos para trás, contando os dias consecutivos.
         while (completionDates.has(formatDate(currentDate))) {
             streak++;
             currentDate.setDate(currentDate.getDate() - 1);
         }
 
         return streak;
+    }
+
+    function calculateBestStreak(habitId) {
+        const habitCompletions = completions.filter(c => c.habitId == habitId);
+        if (habitCompletions.length === 0) return 0;
+
+        const completionDates = new Set(habitCompletions.map(c => c.date));
+        const formatDate = (date) => date.toISOString().split('T')[0];
+
+        let bestStreak = 0;
+        let currentStreak = 0;
+
+        // Ordena as datas para garantir a verificação cronológica
+        const sortedDates = [...completionDates].sort();
+
+        if (sortedDates.length === 0) return 0;
+
+        let lastDate = new Date(sortedDates[0]);
+        currentStreak = 1;
+        bestStreak = 1;
+
+        for (let i = 1; i < sortedDates.length; i++) {
+            let currentDate = new Date(sortedDates[i]);
+            let expectedLastDate = new Date(currentDate);
+            expectedLastDate.setDate(expectedLastDate.getDate() - 1);
+
+            if (formatDate(lastDate) === formatDate(expectedLastDate)) {
+                currentStreak++;
+            } else {
+                currentStreak = 1;
+            }
+
+            if (currentStreak > bestStreak) {
+                bestStreak = currentStreak;
+            }
+            lastDate = currentDate;
+        }
+
+        return bestStreak;
     }
 
     // =================================================================
@@ -232,11 +271,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const todayDateString = getTodayDateString();
         activeHabits.forEach(habit => {
             // Recalcula o streak sempre que o dashboard é renderizado para garantir que esteja sempre atualizado.
-            const currentStreak = calculateStreak(String(habit.id));
-            habit.currentStreak = currentStreak;
-            if (currentStreak > habit.bestStreak) {
-                habit.bestStreak = currentStreak;
-            }
+            habit.currentStreak = calculateStreak(String(habit.id));
+            habit.bestStreak = calculateBestStreak(String(habit.id));
 
             const isCompleted = completions.some(c => c.habitId == habit.id && c.date === todayDateString);
             const el = document.createElement('div');
@@ -268,15 +304,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveCompletions();
 
-        const newStreak = calculateStreak(habitId);
-        habit.currentStreak = newStreak;
-        if (newStreak > habit.bestStreak) {
-            habit.bestStreak = newStreak;
-        }
+        habit.currentStreak = calculateStreak(habitId);
+        habit.bestStreak = calculateBestStreak(habitId);
 
         saveHabits();
         renderDashboard();
     });
+
+    // =================================================================
+    // --- PROGRESS MANAGEMENT ---
+    // =================================================================
+    const progressStatsEl = document.getElementById('progressStats');
+
+    function renderProgressStats() {
+        progressStatsEl.innerHTML = '';
+        if (habits.length === 0) {
+            progressStatsEl.innerHTML = '<p>Você ainda não adicionou nenhum hábito.</p>';
+            return;
+        }
+
+        habits.forEach(habit => {
+            const startDate = new Date(habit.createdDate);
+            const today = new Date();
+            const timeDiff = today.getTime() - startDate.getTime();
+            const daysSinceCreation = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+            const completionRate = (daysSinceCreation > 0)
+                ? ((habit.totalCompletions / daysSinceCreation) * 100).toFixed(1)
+                : 0;
+
+            const el = document.createElement('div');
+            el.className = 'progress-card';
+            el.innerHTML = `
+                <h3>${habit.name}</h3>
+                <p><strong>Streak Atual:</strong> ${habit.currentStreak} dias</p>
+                <p><strong>Melhor Streak:</strong> ${habit.bestStreak} dias</p>
+                <p><strong>Total de Conclusões:</strong> ${habit.totalCompletions}</p>
+                <p><strong>Taxa de Conclusão:</strong> ${completionRate}%</p>
+                <p><small>Hábito criado há ${daysSinceCreation} dia(s).</small></p>
+            `;
+            progressStatsEl.appendChild(el);
+        });
+    }
 
     // =================================================================
     // --- INITIAL LOAD ---
